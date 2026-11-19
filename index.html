@@ -1,0 +1,41 @@
+```html
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>fogyglow CB</title></head>
+<body style="margin:0;background:#000;display:flex;justify-content:center;padding:24px">
+<div style="font-family:sans-serif;background:#000;color:#fff;padding:16px;border-radius:12px;width:100%;max-width:420px">
+<h3 style="color:#ff7a00;margin:0 0 8px">CB Channel 19</h3>
+<div id="st" style="margin-bottom:10px;color:#6cf">Tap the button to start</div>
+<button id="ptt" style="width:100%;padding:18px;font-size:20px;background:#ff7a00;color:#000;border:0;border-radius:10px;touch-action:manipulation">Tap to join</button>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+const CH=19,SLOTS=8,pre='fogyglow-cb-'+CH+'-';
+const st=document.getElementById('st'),btn=document.getElementById('ptt');
+let stream,track,peer=null,me=0,ready=false,talking=false;
+function open(i){return new Promise(res=>{const p=new Peer(pre+i);
+p.on('open',()=>res(p));
+p.on('error',e=>{if(e.type==='unavailable-id'){p.destroy();res(null);}});});}
+function hook(c){c.on('stream',s=>{const a=new Audio();a.srcObject=s;a.play().catch(()=>{});});}
+async function join(){
+ btn.disabled=true;st.textContent='Asking for microphone...';
+ try{stream=await navigator.mediaDevices.getUserMedia({audio:true});}
+ catch(e){st.textContent='Microphone blocked: '+(e.name||'error');btn.disabled=false;return;}
+ track=stream.getAudioTracks()[0];track.enabled=false;
+ st.textContent='Connecting...';
+ for(let i=1;i<=SLOTS&&!peer;i++){peer=await open(i);me=i;}
+ if(!peer){st.textContent='Channel full. Try again soon.';btn.disabled=false;return;}
+ peer.on('error',()=>{});
+ peer.on('call',c=>{c.answer(stream);hook(c);});
+ for(let i=1;i<=SLOTS;i++){if(i!==me)hook(peer.call(pre+i,stream));}
+ ready=true;btn.disabled=false;btn.textContent='Tap to talk';
+ st.textContent='On air. Channel 19.';
+}
+btn.addEventListener('click',()=>{
+ if(!ready){join();return;}
+ talking=!talking;track.enabled=talking;
+ btn.textContent=talking?'Talking... tap to stop':'Tap to talk';
+ btn.style.background=talking?'#6cf':'#ff7a00';
+});
+</script>
+</body></html>
+```
